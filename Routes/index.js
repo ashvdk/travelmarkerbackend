@@ -19,7 +19,10 @@ routes.post('/user', verifytoken, (req, res) => {
           if(result) res.status(200).send('Successful');
         });
       }
-      res.status(200).send('Successful');
+      else {
+        res.status(200).send('Successful');
+      }
+      
     });
     // dbconnection.close();
   });

@@ -25,19 +25,53 @@ routes.get('/user/:uid', verifytoken, (req, res) => {
   const { uid } = req.params;
   dbconnection.connect(err => {
     const collection = dbconnection.db("TravelLocationExplorer").collection("users");
-    collection.findOne({ "_id": uid },function(err, user){
-      if (err) console.log(err);
-      if(!user){
-        response.status(401).send({"fault":{"faultstring":"User not found"}});
-      } 
-      else {
-        console.log(user);
-        res.status(200).send(user);
+    collection.aggregate([
+      { $lookup:
+        {
+          from: 'locations',
+          localField: "_id",
+          foreignField: "uid",
+          as: 'locationdetails'
+        }
       }
-      
+    ]).toArray(function(err, user) {
+      if (err) console.log(err);
+      if(user){
+        console.log(user[0]);
+        res.status(200).send(user[0]);
+      }
+      else {
+        res.status(401).send({"fault":{"faultstring":"User not found"}});
+      }
     });
     // dbconnection.close();
   });
 })
+
+routes.post('/user/:uid/location', verifytoken, (req, res) => {
+  const { uid } = req.params;
+  const { name, description, coordinates, category,city } = req.body;
+  dbconnection.connect(err => {
+    const collection = dbconnection.db("TravelLocationExplorer").collection("locations");
+    var locationObj = {
+        name,
+        uid,
+        description,
+        "opens at": "9AM to 6PM",
+        location: { type: "Point",  coordinates: coordinates.split(", ") },
+        category,
+      city
+    };
+    collection.insertOne(locationObj, function(err, result) {
+      if (err) res.status(400).send('Error');
+      if(result) {
+        console.log('Saved');
+        console.log('inserted record', result.ops[0]);
+        res.status(200).send({message: 'Successful', result: [result.ops[0]]});
+      }
+    });
+    // dbconnection.close();
+  });
+});
 
 module.exports = routes;

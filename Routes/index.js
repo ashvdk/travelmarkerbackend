@@ -2,6 +2,10 @@ const routes = require('express').Router();
 const dbconnection = require('../dbconnection');
 const verifytoken = require('../verifytoken');
 
+routes.get('/',(req,res) => {
+  res.send('<h1>is ready</h1>');
+})
+
 routes.post('/user', verifytoken, (req, res) => {
   const { uid, email, displayName } = req.body;
   dbconnection.connect(err => {

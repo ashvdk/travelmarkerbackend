@@ -93,18 +93,15 @@ routes.get('/user/:uid', verifytoken, (req, res) => {
 
 routes.post('/user/:uid/location', verifytoken, (req, res) => {
   const { uid } = req.params;
-  const { name, description, coordinates, category, city } = req.body;
+  const { caption, locations } = req.body;
   dbconnection.connect(err => {
     const collection = dbconnection.db("TravelLocationExplorer").collection("locations");
     var locationObj = {
-      name,
+      caption,
+      locations,
       uid,
-      description,
-      "opens at": "9AM to 6PM",
-      location: { type: "Point", coordinates: coordinates.split(", ") },
-      category,
-      city
     };
+
     collection.insertOne(locationObj, function (err, result) {
       if (err) res.status(400).send('Error');
       if (result) {
@@ -113,7 +110,7 @@ routes.post('/user/:uid/location', verifytoken, (req, res) => {
         res.status(200).send({ message: 'Successful', result: [result.ops[0]] });
       }
     });
-    // dbconnection.close();
+
   });
 });
 

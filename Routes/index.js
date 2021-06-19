@@ -90,16 +90,52 @@ routes.get('/user/:uid', verifytoken, (req, res) => {
     // });
   });
 })
+routes.get('/user/:uid/getallclubs', verifytoken, (req, res) => {
+  const { uid } = req.params;
+  dbconnection.connect(err => {
+    const collection = dbconnection.db("TravelLocationExplorer").collection("clubs");
+    collection.find({ "uid": uid }).toArray(function (err, result) {
+      if (err) throw err;
+      //console.log(result);
+
+      res.status(200).send({ message: 'Successful', result: [...result] });
+
+    });
+  });
+});
+routes.post('/user/:uid/createclub', verifytoken, (req, res) => {
+  const { uid } = req.params;
+  const newclub = req.body;
+  dbconnection.connect(err => {
+    const collection = dbconnection.db("TravelLocationExplorer").collection("clubs");
+    var newclubobject = {
+      ...newclub,
+      uid
+    };
+
+    collection.insertOne(newclubobject, function (err, result) {
+      if (err) res.status(400).send('Error');
+      if (result) {
+        console.log('Saved');
+        console.log('inserted record', result.ops[0]);
+        res.status(200).send({ message: 'Successful', result: result.ops[0] });
+      }
+    });
+
+  });
+});
 
 routes.post('/user/:uid/location', verifytoken, (req, res) => {
   const { uid } = req.params;
-  const { caption, locations } = req.body;
+  const { caption, locations, optimalCoordinates, optimalZoom } = req.body;
   dbconnection.connect(err => {
     const collection = dbconnection.db("TravelLocationExplorer").collection("locations");
     var locationObj = {
       caption,
       locations,
       uid,
+      optimalCoordinates,
+      optimalZoom
     };
 
     collection.insertOne(locationObj, function (err, result) {

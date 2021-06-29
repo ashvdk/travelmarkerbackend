@@ -25,7 +25,7 @@ routes.get('/getuserdetails/:uid', verifytoken, (req, res) => {
 
 routes.post('/user', verifytoken, (req, res) => {
 
-  const { uid, email, displayName, username, photoURL } = req.body;
+  const { uid, email, displayName, username, photoURL, gender, description } = req.body;
   //console.log(photoURL);
   dbconnection.connect(err => {
     const collection = dbconnection.db("TravelLocationExplorer").collection("users");
@@ -36,7 +36,7 @@ routes.post('/user', verifytoken, (req, res) => {
         res.status(409).send({ message: "username already exists" });
       }
       else {
-        var userObj = { _id: uid, email, displayName, username, photoURL };
+        var userObj = { _id: uid, email, displayName, username, photoURL, gender, description };
         collection.insertOne(userObj, function (err, result) {
           if (err) throw err;
           if (result) res.status(200).send({ message: "Successful" });
@@ -150,15 +150,44 @@ routes.post('/user/:uid/location', verifytoken, (req, res) => {
   });
 });
 
-routes.get('/searchusername', verifytoken, (req, res) => {
-  const { username, uid } = req.query;
+routes.get('/search', verifytoken, async (req, res) => {
+  const { q, uid, option } = req.query;
+  let finalresult = [];
   dbconnection.connect(async err => {
-    const usercollection = dbconnection.db("TravelLocationExplorer").collection("users");
-    usercollection.find({ "username": username, _id: { $ne: uid } }).limit(5).toArray(function (err, result) {
-      if (err) throw err;
-      res.status(200).send({ message: 'Successful', result });
-    });
-
+    const db = dbconnection.db("TravelLocationExplorer");
+    async function getsearchedusername() {
+      const usercollection = db.collection("users");
+      return new Promise((resolve, reject) => {
+        usercollection.find({ "username": q, _id: { $ne: uid } }).limit(5).toArray(function (err, result) {
+          if (err)
+            throw err;
+          resolve(result);
+          // finalresult = [...finalresult, ...result];
+          // console.log(finalresult);
+        });
+      })
+    }
+    async function searchclub() {
+      const clubscollection = db.collection("clubs");
+      return new Promise((resolve, reject) => {
+        clubscollection.createIndex({ clubname: "text", clubcategory: "text", clubdescription: "text" });
+        clubscollection.find({ $text: { $search: q }, uid: { $ne: uid } }).toArray(function (err, result) {
+          if (err)
+            throw err;
+          console.log(result);
+          resolve(result)
+        });
+      })
+    }
+    if (option == "clubs") {
+      let getclubresults = await searchclub();
+      finalresult = [...finalresult, ...getclubresults];
+    }
+    else if (option == "people") {
+      let getusername = await getsearchedusername();
+      finalresult = [...finalresult, ...getusername];
+    }
+    res.status(200).send({ message: 'Successful', result: finalresult });
   });
 });
 
